@@ -13,6 +13,8 @@ const routes = require('./routes.js');
 const auth = require('./auth.js');
 
 const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 
 app.set('view engine', 'pug');
 app.set('views', './views/pug');
@@ -35,27 +37,12 @@ app.use(express.urlencoded({ extended: true }));
 
 myDB(async client => {
   const myDataBase = await client.db('database').collection('users');
-  routes(app, myDataBase)
+  routes(app, myDataBase);
+  auth(app, myDataBase);
 
-  
-
-  app.use((req, res, next) => {
-    res.status(404)
-      .type('text')
-      .send('Not Found');
+    io.on('connection', socket => {
+    console.log('A user has connected');
   });
-
-  passport.use(new LocalStrategy((username, password, done) => {
-    myDataBase.findOne({ username: username }, (err, user) => {
-      console.log(`User ${username} attempted to log in.`);
-      if (err) { return done(err); }
-      if (!user) { return done(null, false); }
-      if (!bcrypt.compareSync(password, user.password)) { 
-        return done(null, false);
-}
-
-    });
-  }));
 
 }).catch(e => {
   app.route('/').get((req, res) => {
@@ -63,14 +50,7 @@ myDB(async client => {
   });
 });
 
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/');
-};
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+http.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
 });

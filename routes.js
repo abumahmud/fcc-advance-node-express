@@ -6,7 +6,8 @@ module.exports = function (app, myDataBase) {
       title: 'Connected to Database',
       message: 'Please log in',
       showLogin: true,
-      showRegistration: true
+      showRegistration: true,
+      showSocialAuth: true
     });
   });
 
@@ -60,7 +61,25 @@ module.exports = function (app, myDataBase) {
         res.redirect('/profile');
       }
     );
+
+    app.route('/chat').get(ensureAuthenticated, (req,res) => {
+    res.render('./chat.pug', { user: req.user });
+  });
+  
+    app.route('/auth/github').get(passport.authenticate('local'));
+    app.route('/auth/github/callback').get(passport.authenticate('local', { failureRedirect: '/' }), (req,res) => {
+      req.session.user_id = req.user.id
+      res.redirect('/chat');
+  });
+
+   app.use((req, res, next) => {
+    res.status(404)
+      .type('text')
+      .send('Not Found');
+  });
+
 }
+
 function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
